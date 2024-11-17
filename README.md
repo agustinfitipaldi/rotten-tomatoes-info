@@ -27,7 +27,7 @@ The extension:
 
 1. Scans the webpage for movie poster containers
 2. Extracts movie titles from the posters
-3. Queries a custom API endpoint (rt-scraper.vercel.app)[https://github.com/agustinfitipaldi/rt-scraper] to fetch Rotten Tomatoes data
+3. Queries a custom API endpoint [rt-scraper](https://github.com/agustinfitipaldi/rt-scraper) to fetch Rotten Tomatoes data
 4. Displays the information in a clean, styled card below each movie poster
 
 ## Technical Details
