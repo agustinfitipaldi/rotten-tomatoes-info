@@ -4,11 +4,20 @@
   "version": "1.0",
   "description": "Adds Rotten Tomatoes scores under movie posters",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs",
+    "windows"
   ],
   "host_permissions": [
-    "https://rt-scraper.vercel.app/*"
+    "https://rt-scraper.vercel.app/*",
+    "https://www.rottentomatoes.com/*",
+    "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://nzbgeek.info/*"],

@@ -8,28 +8,45 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
         const data = await response.json();
         
         if (data.tomatometer) {
-            // Create container for all movie info
+            // Add the RT URL to the data
+            const rtUrl = data.url;
+            
+            // Update the HTML to make elements clickable
             scoreElement.innerHTML = `
-                <div class="movie-title" data-tooltip="${data.synopsis}">${data.title} (${data.year})</div>
+                <div class="movie-title rt-link" data-url="${rtUrl}" data-tooltip="${data.synopsis}">${data.title} (${data.year})</div>
                 <div class="scores-container">
                     <div class="score critics">
-                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}" data-tooltip="${data.scores.critics.reviews}">
+                        <div class="score-value rt-link" data-url="${rtUrl}" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}" data-tooltip="${data.scores.critics.reviews}">
                             ${data.scores.critics.score}
                         </div>
                         <div class="score-label">Critics</div>
                     </div>
                     <div class="score audience">
-                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.audience.score))}" data-tooltip="${data.scores.audience.reviews}">
+                        <div class="score-value rt-link" data-url="${rtUrl}" style="background-color: ${getScoreColor(parseInt(data.scores.audience.score))}" data-tooltip="${data.scores.audience.reviews}">
                             ${data.scores.audience.score}
                         </div>
                         <div class="score-label">Audience</div>
                     </div>
                 </div>
-                <div class="movie-details">
+                <div class="movie-details rt-link" data-url="${rtUrl}">
                     <div>Released: ${data.details['Release Date (Theaters)'] || 'N/A'}</div>
                     <div>Box Office: ${data.details['Box Office (Gross USA)'] || 'N/A'}</div>
                 </div>
+                <div class="tooltip-container"></div>
             `;
+            
+            // Add click handlers to RT links
+            scoreElement.querySelectorAll('.rt-link').forEach(element => {
+                element.style.cursor = 'pointer';
+                element.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = element.dataset.url;
+                    chrome.runtime.sendMessage({
+                        action: "openRottenTomatoes",
+                        url: url
+                    });
+                });
+            });
             
             // Update styles
             scoreElement.style.cssText = `
@@ -39,6 +56,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                 border-radius: 3px;
                 background-color: #f8f8f8;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                position: relative;
             `;
             
             // Add CSS for the new elements
@@ -56,8 +74,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                 }
 
                 /* Tooltip styling */
-                .movie-score [data-tooltip]:hover::after {
-                    content: attr(data-tooltip);
+                .tooltip {
                     position: absolute;
                     background: rgba(0, 0, 0, 1);
                     color: #f5f5f5;
@@ -69,32 +86,41 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                     white-space: pre-wrap;
                     pointer-events: none;
                     text-align: left;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+
+                .tooltip.show {
+                    opacity: 1;
                 }
 
                 /* Responsive positioning */
                 @media (min-width: 768px) {
-                    .movie-score .movie-title[data-tooltip]:hover::after {
-                        left: calc(100% + 10px);
-                        right: auto;
+                    .tooltip.right {
+                        left: 100%;
+                        top: 50%;
+                        transform: translate(10px, -50%);
+                    }
+                    
+                    .tooltip.left {
+                        right: 100%;
+                        top: 50%;
+                        transform: translate(-10px, -50%);
                     }
                 }
 
                 @media (max-width: 767px) {
-                    .movie-score .movie-title[data-tooltip]:hover::after {
-                        left: auto;
-                        right: calc(100% + 10px);
+                    .tooltip.right {
+                        left: 100%;
+                        top: 50%;
+                        transform: translate(10px, -50%);
                     }
-                }
-
-                .movie-score .score-value[data-tooltip]:hover::after {
-                    bottom: auto;
-                    top: 100%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    margin-left: 0;
-                    width: auto;
-                    min-width: 120px;
-                    text-align: center;
+                    
+                    .tooltip.left {
+                        right: 100%;
+                        top: 50%;
+                        transform: translate(-10px, -50%);
+                    }
                 }
 
                 /* Additional styles */
@@ -122,6 +148,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                     font-weight: bold;
                     color: black;
                     cursor: help;
+                    position: relative;
                 }
 
                 .movie-score .score-label {
@@ -136,6 +163,9 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                 }
             `;
             document.head.appendChild(style);
+            
+            // Initialize tooltips
+            initializeTooltips(scoreElement);
         } else {
             scoreElement.textContent = 'Score N/A';
             scoreElement.style.backgroundColor = '#ccc';
@@ -198,6 +228,7 @@ async function processMoviePosters() {
                 margin-top: 5px;
                 border-radius: 3px;
                 font-weight: bold;
+                position: relative;
             `;
             
             container.appendChild(scoreElement);
@@ -245,4 +276,51 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeObserver);
 } else {
     initializeObserver();
+}
+
+// Tooltip Initialization Function
+function initializeTooltips(container) {
+    const tooltipElements = container.querySelectorAll('[data-tooltip]');
+    
+    tooltipElements.forEach(element => {
+        const tooltipText = element.getAttribute('data-tooltip');
+        const tooltipContainer = container.querySelector('.tooltip-container');
+        if (!tooltipContainer) return;
+        
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = tooltipText;
+        tooltipContainer.appendChild(tooltip);
+        
+        element.addEventListener('mouseenter', (e) => {
+            tooltip.classList.add('show');
+            positionTooltip(element, tooltip);
+        });
+        
+        element.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('show');
+        });
+    });
+}
+
+// Function to position tooltip
+function positionTooltip(target, tooltip) {
+    const targetRect = target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    
+    // Default position is right
+    let positionClass = 'right';
+    
+    // Check if tooltip overflows to the right
+    if (targetRect.right + tooltipRect.width + 20 > viewportWidth) {
+        positionClass = 'left';
+    }
+    
+    // Remove existing position classes
+    tooltip.classList.remove('left', 'right');
+    
+    // Add the appropriate position class
+    tooltip.classList.add(positionClass);
 }
