@@ -1,17 +1,115 @@
 console.log('Content script loaded!');
 
+async function getSettings() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get({
+            maxCacheSize: 100,
+            cacheDuration: 24,
+        }, resolve);
+    });
+}
+
+async function getCachedMovie(movieTitle) {
+    return new Promise(async (resolve) => {
+        chrome.storage.local.get('movieCache', async (result) => {
+            const cache = result.movieCache || {};
+            const movieData = cache[movieTitle];
+            
+            if (!movieData) {
+                resolve(null);
+                return;
+            }
+
+            // Check if cache has expired
+            const now = Date.now();
+            const settings = await getSettings();
+            const expiryTime = settings.cacheDuration * 60 * 60 * 1000;
+            
+            if (now - movieData.timestamp > expiryTime) {
+                resolve(null);
+                return;
+            }
+
+            resolve(movieData.data);
+        });
+    });
+}
+
+async function cacheMovie(movieTitle, movieData) {
+    const settings = await getSettings();
+    
+    chrome.storage.local.get('movieCache', (result) => {
+        let cache = result.movieCache || {};
+        
+        // Add timestamp to movie data
+        cache[movieTitle] = {
+            data: movieData,
+            timestamp: Date.now()
+        };
+
+        // Remove oldest entries if cache is too large
+        const entries = Object.entries(cache);
+        if (entries.length > settings.maxCacheSize) {
+            const sortedEntries = entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+            cache = Object.fromEntries(sortedEntries.slice(0, settings.maxCacheSize));
+        }
+
+        chrome.storage.local.set({ movieCache: cache });
+    });
+}
+
+function updateScoreElement(scoreElement, data) {
+    if (data.tomatometer) {
+        const score = data.tomatometer;
+        scoreElement.textContent = `${score}%`;
+        scoreElement.style.backgroundColor = getScoreColor(score);
+        
+        // Add tooltip data if available
+        if (data.consensus) {
+            scoreElement.setAttribute('data-tooltip', data.consensus);
+            initializeTooltips(scoreElement.parentElement);
+        }
+    } else {
+        scoreElement.textContent = 'Score N/A';
+        scoreElement.style.backgroundColor = '#ccc';
+    }
+}
+
 async function getRottenTomatoesScore(movieTitle, scoreElement) {
     console.log('Searching for:', movieTitle);
     
     try {
-        const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}`);
-        const data = await response.json();
+        let data;
+        
+        // Check cache first
+        const cachedData = await getCachedMovie(movieTitle);
+        if (cachedData) {
+            console.log('Found in cache:', movieTitle);
+            if (cachedData.title && cachedData.title.toLowerCase() === movieTitle.toLowerCase()) {
+                data = cachedData;
+            } else {
+                console.log('Cache mismatch, fetching fresh data');
+                data = null;
+            }
+        }
+
+        if (!data) {
+            // If not in cache or cache mismatch, fetch from API
+            const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}`);
+            data = await response.json();
+            
+            if (data.tomatometer) {
+                // Verify API response matches requested movie before caching
+                if (data.title && data.title.toLowerCase() === movieTitle.toLowerCase()) {
+                    await cacheMovie(movieTitle, data);
+                }
+            }
+        }
         
         if (data.tomatometer) {
-            // Add the RT URL to the data
+            // The rest of the original function remains exactly the same
             const rtUrl = data.url;
             
-            // Update the HTML to make elements clickable
             scoreElement.innerHTML = `
                 <div class="movie-title rt-link" data-url="${rtUrl}" data-tooltip="${data.synopsis}">${data.title} (${data.year})</div>
                 <div class="scores-container">
@@ -29,7 +127,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                     </div>
                 </div>
                 <div class="movie-details rt-link" data-url="${rtUrl}">
-                    <div>Released: ${data.details['Release Date (Theaters)'] || 'N/A'}</div>
+                    <div>Released: ${(data.details['Release Date (Theaters)'] || 'N/A').replace(', Wide', '')}</div>
                     <div>Box Office: ${data.details['Box Office (Gross USA)'] || 'N/A'}</div>
                 </div>
                 <div class="tooltip-container"></div>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Ratings Settings</title>
+    <style>
+        /* Copy styles from kagisplit/options.html */
+        
+        /* Cache display styles */
+        #cacheDisplay {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 80%;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .cache-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+
+        .cache-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .cache-details {
+            font-size: 0.9em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #closeCache {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .cache-header {
+            padding: 10px 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Movie Ratings Settings</h1>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Cache Settings</h2>
+            <div class="setting-group">
+                <label for="maxCacheSize">Maximum Cache Size</label>
+                <input type="number" id="maxCacheSize" min="10" max="1000">
+                <div class="hint">Maximum number of movies to keep in cache</div>
+            </div>
+
+            <div class="setting-group">
+                <label for="cacheDuration">Cache Duration (hours)</label>
+                <input type="number" id="cacheDuration" min="1" max="720">
+                <div class="hint">How long to keep movies in cache before refreshing</div>
+            </div>
+
+            <div class="button-group">
+                <button id="clearCache" class="secondary-btn">Clear Cache</button>
+                <button id="viewCache" class="secondary-btn">View Cache</button>
+            </div>
+        </div>
+
+        <button id="save">Save Settings</button>
+        <div id="status"></div>
+    </div>
+
+    <!-- Cache Display Modal -->
+    <div id="cacheDisplay">
+        <button id="closeCache">×</button>
+        <h3>Current Cache Contents</h3>
+        <div id="cacheContent"></div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html> 
