@@ -1,6 +1,6 @@
 # Movie Ratings Enhancer
 
-An Edge extension that automatically displays Rotten Tomatoes scores and movie
+An Edge extension that automatically displays Rotten Tomato scores and movie
 information alongside movie posters on nzbgeek.info.
 
 ## Features
@@ -23,12 +23,19 @@ information alongside movie posters on nzbgeek.info.
 
 ## How It Works
 
+### Without Extension
+https://github.com/user-attachments/assets/9a8561bc-2ec5-45ed-ba19-1e19f7dbb053
+
+
+### With Extension!
+https://github.com/user-attachments/assets/b6f8afa7-79b5-4316-a40a-3f3f66cbdcc5
+
 The extension:
 
 1. Scans the webpage for movie poster containers
 2. Extracts movie titles from the posters
 3. Queries a custom API endpoint [rt-scraper](https://github.com/agustinfitipaldi/rt-scraper) to fetch Rotten Tomatoes data
-4. Displays the information in a clean, styled card below each movie poster
+4. Displays the information below each poster!
 
 ## Technical Details
 
@@ -53,7 +60,3 @@ To modify the extension:
 ## Contributing
 
 Feel free to submit issues and pull requests for any improvements or bug fixes.
-
-## License
-
-[Add your chosen license here]
