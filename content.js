@@ -1,45 +1,28 @@
 console.log('Content script loaded!');
 
-async function getRottenTomatoesScore(movieTitle, scoreButton) {
+async function getRottenTomatoesScore(movieTitle, scoreElement) {
     console.log('Searching for:', movieTitle);
-    
-    // Show loading state
-    scoreButton.textContent = 'Loading...';
-    scoreButton.disabled = true;
     
     try {
         const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}`);
         const data = await response.json();
         
         if (data.tomatometer) {
-            // Replace button with score display
-            const scoreElement = document.createElement('div');
-            scoreElement.className = 'movie-score';
             scoreElement.textContent = `${data.tomatometer}%`;
-            scoreElement.style.cssText = `
-                text-align: center;
-                color: black;
-                background-color: ${getScoreColor(data.tomatometer)};
-                padding: 4px;
-                margin-top: 5px;
-                border-radius: 3px;
-                font-weight: bold;
-            `;
+            scoreElement.style.backgroundColor = getScoreColor(data.tomatometer);
             
             // Add tooltip with cast information if available
             if (data.cast && data.cast.length > 0) {
                 scoreElement.title = `Cast: ${data.cast.join(', ')}`;
             }
-            
-            scoreButton.parentNode.replaceChild(scoreElement, scoreButton);
         } else {
-            scoreButton.textContent = 'Score N/A';
-            scoreButton.disabled = true;
+            scoreElement.textContent = 'Score N/A';
+            scoreElement.style.backgroundColor = '#ccc';
         }
     } catch (error) {
         console.error('Error fetching score:', error);
-        scoreButton.textContent = 'Get Score';
-        scoreButton.disabled = false;
+        scoreElement.textContent = 'Error';
+        scoreElement.style.backgroundColor = '#ff9999';
     }
 }
 
@@ -62,15 +45,15 @@ function getScoreColor(score) {
     return `rgb(${r}, ${g}, 0)`;
 }
 
-function addScoreButtons() {
-    console.log('Adding score buttons...');
+async function processMoviePosters() {
+    console.log('Processing movie posters...');
     const posterContainers = document.querySelectorAll('.poster_container');
     console.log('Found poster containers:', posterContainers.length);
     
-    posterContainers.forEach((container) => {
+    for (const container of posterContainers) {
         // Skip if already processed
-        if (container.querySelector('.movie-score') || container.querySelector('.score-button')) {
-            return;
+        if (container.querySelector('.movie-score')) {
+            continue;
         }
 
         const titleLink = container.querySelector('a');
@@ -78,28 +61,26 @@ function addScoreButtons() {
             let movieTitle = titleLink.getAttribute('title');
             movieTitle = movieTitle.replace(/\s*\(\d{4}\)$/, '');
             
-            const scoreButton = document.createElement('button');
-            scoreButton.className = 'score-button';
-            scoreButton.textContent = 'Get Score';
-            scoreButton.style.cssText = `
-                background-color: #333;
-                color: white;
-                border: none;
-                padding: 4px 8px;
+            // Create placeholder for score
+            const scoreElement = document.createElement('div');
+            scoreElement.className = 'movie-score';
+            scoreElement.textContent = 'Loading...';
+            scoreElement.style.cssText = `
+                text-align: center;
+                color: black;
+                background-color: #ccc;
+                padding: 4px;
                 margin-top: 5px;
                 border-radius: 3px;
-                cursor: pointer;
-                width: 100%;
-                font-size: 12px;
+                font-weight: bold;
             `;
             
-            scoreButton.addEventListener('click', () => {
-                getRottenTomatoesScore(movieTitle, scoreButton);
-            });
+            container.appendChild(scoreElement);
             
-            container.appendChild(scoreButton);
+            // Fetch score immediately
+            await getRottenTomatoesScore(movieTitle, scoreElement);
         }
-    });
+    }
 }
 
 function initializeObserver() {
@@ -115,7 +96,7 @@ function initializeObserver() {
         );
 
         if (hasRelevantChanges) {
-            addScoreButtons();
+            processMoviePosters();
         }
     });
 
@@ -124,7 +105,7 @@ function initializeObserver() {
         subtree: true
     });
     
-    addScoreButtons();
+    processMoviePosters();
 }
 
 if (document.readyState === 'loading') {
