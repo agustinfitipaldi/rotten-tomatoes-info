@@ -25,10 +25,11 @@ information alongside movie posters on nzbgeek.info.
 ## How It Works
 
 ### Without Extension
+
 https://github.com/user-attachments/assets/9a8561bc-2ec5-45ed-ba19-1e19f7dbb053
 
-
 ### With Extension!
+
 https://github.com/user-attachments/assets/27677f13-9bc9-435b-b670-555c44ba3549
 
 The extension:
@@ -39,9 +40,7 @@ The extension:
 4. Displays the information below each poster!
 
 Clicking on any part of the inserted information, will bring up a popup window with
-the Rotten Tomatoes page for that movie. The popup window is created and behaves very
-similarly to my other [popup search extension](https://github.com/agustinfitipaldi/popup-search) in that it allows you to
-quit the popup quickly by pressing `Esc`.
+the Rotten Tomatoes page for that movie.
 
 ## Technical Details
 
