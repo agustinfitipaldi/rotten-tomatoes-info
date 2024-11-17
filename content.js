@@ -10,21 +10,19 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
         if (data.tomatometer) {
             // Create container for all movie info
             scoreElement.innerHTML = `
-                <div class="movie-title">${data.title} (${data.year})</div>
+                <div class="movie-title" title="${data.synopsis}">${data.title} (${data.year})</div>
                 <div class="scores-container">
                     <div class="score critics">
-                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}">
+                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}" title="${data.scores.critics.reviews}">
                             ${data.scores.critics.score}
                         </div>
                         <div class="score-label">Critics</div>
-                        <div class="review-count">${data.scores.critics.reviews}</div>
                     </div>
                     <div class="score audience">
-                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.audience.score))}">
+                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.audience.score))}" title="${data.scores.audience.reviews}">
                             ${data.scores.audience.score}
                         </div>
                         <div class="score-label">Audience</div>
-                        <div class="review-count">${data.scores.audience.reviews}</div>
                     </div>
                 </div>
                 <div class="movie-details">
@@ -46,33 +44,90 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
             // Add CSS for the new elements
             const style = document.createElement('style');
             style.textContent = `
+                /* Base styles for title elements */
+                .movie-score [title] {
+                    position: relative;
+                    pointer-events: auto;
+                }
+
+                /* Cursor change on hover */
+                .movie-score [title]:hover {
+                    cursor: help;
+                }
+
+                /* Tooltip styling */
+                .movie-score [title]:hover::after {
+                    content: attr(title);
+                    position: absolute;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 8px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    z-index: 1000;
+                    width: 200px;
+                    white-space: pre-wrap;
+                    pointer-events: none;
+                }
+
+                /* Responsive positioning */
+                @media (min-width: 768px) {
+                    .movie-score .movie-title[title]:hover::after {
+                        left: calc(100% + 10px);
+                        right: auto;
+                    }
+                }
+
+                @media (max-width: 767px) {
+                    .movie-score .movie-title[title]:hover::after {
+                        left: auto;
+                        right: calc(100% + 10px);
+                    }
+                }
+
+                .movie-score .score-value[title]:hover::after {
+                    bottom: auto;
+                    top: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    margin-left: 0;
+                    width: auto;
+                    min-width: 120px;
+                    text-align: center;
+                }
+
+                /* Additional styles */
                 .movie-score .movie-title {
                     font-weight: bold;
                     margin-bottom: 8px;
+                    cursor: help;
+                    position: relative;
                 }
+
                 .movie-score .scores-container {
                     display: flex;
                     justify-content: space-around;
                     margin-bottom: 8px;
                 }
+
                 .movie-score .score {
                     flex: 1;
                     margin: 0 4px;
                 }
+
                 .movie-score .score-value {
                     padding: 4px;
                     border-radius: 3px;
                     font-weight: bold;
                     color: black;
+                    cursor: help;
                 }
+
                 .movie-score .score-label {
                     font-size: 0.9em;
                     margin-top: 2px;
                 }
-                .movie-score .review-count {
-                    font-size: 0.8em;
-                    color: #666;
-                }
+
                 .movie-score .movie-details {
                     font-size: 0.9em;
                     color: #444;
