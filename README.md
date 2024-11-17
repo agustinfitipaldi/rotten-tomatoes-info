@@ -3,6 +3,10 @@
 An Edge extension that automatically displays Rotten Tomato scores and movie
 information alongside movie posters on nzbgeek.info.
 
+Due to TOS cautions, the api that supplies the data is closed from open access,
+see [my notes](https://github.com/agustinfitipaldi/rt-scraper?tab=readme-ov-file#personal-usage) in the readme for the api for instructions on
+how to fork your own.
+
 ## Features
 
 - Automatically detects movie titles on the page
@@ -54,14 +58,8 @@ the Rotten Tomatoes page for that movie.
 - `activeTab`: To interact with the current webpage
 - Access to `https://rt-scraper.vercel.app/*` for fetching movie data
 
-## Development
+## Personal Usage
 
-To modify the extension:
-
-1. Make changes to `content.js` for content script modifications
-2. Update `manifest.json` for extension configuration
-3. Reload the extension in Chrome's extension manager
-
-## Contributing
-
-Feel free to submit issues and pull requests for any improvements or bug fixes.
+In order to use this on your own browser, you're going to have to deploy your own instance
+of the rt-scraper api. See [my notes](https://github.com/agustinfitipaldi/rt-scraper?tab=readme-ov-file#personal-usage) on how to do that. You'll have to use whatever you came up
+with as your `RT-API-KEY` in your `.env` file for your extension for the requests to go through.
