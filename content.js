@@ -10,16 +10,16 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
         if (data.tomatometer) {
             // Create container for all movie info
             scoreElement.innerHTML = `
-                <div class="movie-title" title="${data.synopsis}">${data.title} (${data.year})</div>
+                <div class="movie-title" data-tooltip="${data.synopsis}">${data.title} (${data.year})</div>
                 <div class="scores-container">
                     <div class="score critics">
-                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}" title="${data.scores.critics.reviews}">
+                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}" data-tooltip="${data.scores.critics.reviews}">
                             ${data.scores.critics.score}
                         </div>
                         <div class="score-label">Critics</div>
                     </div>
                     <div class="score audience">
-                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.audience.score))}" title="${data.scores.audience.reviews}">
+                        <div class="score-value" style="background-color: ${getScoreColor(parseInt(data.scores.audience.score))}" data-tooltip="${data.scores.audience.reviews}">
                             ${data.scores.audience.score}
                         </div>
                         <div class="score-label">Audience</div>
@@ -45,47 +45,48 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
             const style = document.createElement('style');
             style.textContent = `
                 /* Base styles for title elements */
-                .movie-score [title] {
+                .movie-score [data-tooltip] {
                     position: relative;
                     pointer-events: auto;
                 }
 
                 /* Cursor change on hover */
-                .movie-score [title]:hover {
+                .movie-score [data-tooltip]:hover {
                     cursor: help;
                 }
 
                 /* Tooltip styling */
-                .movie-score [title]:hover::after {
-                    content: attr(title);
+                .movie-score [data-tooltip]:hover::after {
+                    content: attr(data-tooltip);
                     position: absolute;
-                    background: rgba(0, 0, 0, 0.8);
-                    color: white;
+                    background: rgba(0, 0, 0, 1);
+                    color: #f5f5f5;
                     padding: 8px;
-                    border-radius: 4px;
+                    border-radius: 10px;
                     font-size: 14px;
                     z-index: 1000;
-                    width: 200px;
+                    width: 300px;
                     white-space: pre-wrap;
                     pointer-events: none;
+                    text-align: left;
                 }
 
                 /* Responsive positioning */
                 @media (min-width: 768px) {
-                    .movie-score .movie-title[title]:hover::after {
+                    .movie-score .movie-title[data-tooltip]:hover::after {
                         left: calc(100% + 10px);
                         right: auto;
                     }
                 }
 
                 @media (max-width: 767px) {
-                    .movie-score .movie-title[title]:hover::after {
+                    .movie-score .movie-title[data-tooltip]:hover::after {
                         left: auto;
                         right: calc(100% + 10px);
                     }
                 }
 
-                .movie-score .score-value[title]:hover::after {
+                .movie-score .score-value[data-tooltip]:hover::after {
                     bottom: auto;
                     top: 100%;
                     left: 50%;
