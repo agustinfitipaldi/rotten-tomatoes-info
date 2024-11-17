@@ -50,6 +50,10 @@ async function processMoviePosters() {
     const posterContainers = document.querySelectorAll('.poster_container');
     console.log('Found poster containers:', posterContainers.length);
     
+    // Create array to hold all the fetch promises
+    const fetchPromises = [];
+    const scoreElements = [];
+    
     for (const container of posterContainers) {
         // Skip if already processed
         if (container.querySelector('.movie-score')) {
@@ -77,9 +81,17 @@ async function processMoviePosters() {
             
             container.appendChild(scoreElement);
             
-            // Fetch score immediately
-            await getRottenTomatoesScore(movieTitle, scoreElement);
+            // Instead of awaiting immediately, add to promises array
+            fetchPromises.push(getRottenTomatoesScore(movieTitle, scoreElement));
+            scoreElements.push(scoreElement);
         }
+    }
+    
+    // Process all fetches concurrently
+    try {
+        await Promise.all(fetchPromises);
+    } catch (error) {
+        console.error('Error processing multiple scores:', error);
     }
 }
 
