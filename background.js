@@ -30,8 +30,8 @@ async function openRottenTomatoesPopup(url) {
   }
   
   chrome.windows.getCurrent({}, (parentWindow) => {
-    const width = 800;
-    const height = 1000;
+    const width = 1100;
+    const height = 1200;
     
     const left = parentWindow.left + parentWindow.width - width - 20;
     const top = parentWindow.top + 50;
