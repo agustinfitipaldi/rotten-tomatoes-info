@@ -4,7 +4,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
     console.log('Searching for:', movieTitle);
     
     try {
-        const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}`);
+        const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}&key=${window.config.RT_API_KEY}`);
         const data = await response.json();
         
         if (data.tomatometer) {
