@@ -47,9 +47,12 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
             // Add the RT URL to the data
             const rtUrl = data.url;
             
+            // Create formatted tooltip content and escape it for the data attribute
+            const tooltipContent = encodeURIComponent(`<div class="tooltip-section"><span class="tooltip-label">Director:</span> ${data.details.Director || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Producer:</span> ${Array.isArray(data.details.Producer) ? data.details.Producer.join(', ') : data.details.Producer || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Screenwriter:</span> ${Array.isArray(data.details.Screenwriter) ? data.details.Screenwriter.join(', ') : data.details.Screenwriter || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Cast:</span> ${Array.isArray(data.cast) ? data.cast.join(', ') : data.cast || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Runtime:</span> ${data.details.Runtime || 'N/A'}</div><div class="tooltip-section synopsis"><span class="tooltip-label">Synopsis:</span> ${data.synopsis || 'No synopsis available.'}</div>`);
+            
             // Update the HTML to make elements clickable
             scoreElement.innerHTML = `
-                <div class="movie-title rt-link" data-url="${rtUrl}" data-tooltip="${data.synopsis}">${data.title} (${data.year})</div>
+                <div class="movie-title rt-link" data-url="${rtUrl}" data-tooltip="${tooltipContent}">${data.title} (${data.year})</div>
                 <div class="scores-container">
                     <div class="score critics">
                         <div class="score-value rt-link" data-url="${rtUrl}" style="background-color: ${getScoreColor(parseInt(data.scores.critics.score))}" data-tooltip="${data.scores.critics.reviews}">
@@ -66,7 +69,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                 </div>
                 <div class="movie-details rt-link" data-url="${rtUrl}">
                     <div>Released: ${data.details['Release Date (Theaters)'] || 'N/A'}</div>
-                    <div>Genre: ${data.details.Genre?.join(', ') || 'N/A'}</div>
+                    <div>${data.details.Genre?.join(', ') || 'N/A'}</div>
                 </div>
                 <div class="tooltip-container"></div>
             `;
@@ -112,9 +115,9 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                 /* Tooltip styling */
                 .tooltip {
                     position: absolute;
-                    background: rgba(0, 0, 0, 1);
+                    background: rgba(0, 0, 0, 0.95);
                     color: #f5f5f5;
-                    padding: 8px;
+                    padding: 12px;
                     border-radius: 10px;
                     font-size: 14px;
                     z-index: 1000;
@@ -124,6 +127,27 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                     text-align: left;
                     opacity: 0;
                     transition: opacity 0.2s;
+                }
+
+                .tooltip .tooltip-section {
+                    padding: 2px 8px;
+                    margin: 0;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                    text-align: left;
+                }
+
+                .tooltip .tooltip-section.synopsis {
+                    margin-top: 2px;
+                    white-space: normal;
+                    line-height: 1.4;
+                    text-align: left;
+                }
+
+                .tooltip .tooltip-label {
+                    font-weight: bold;
+                    color: #ffd700;
+                    text-align: left;
                 }
 
                 .tooltip.show {
@@ -364,7 +388,7 @@ async function processMoviePosters() {
                 const scoreElement = container.querySelector('.movie-score');
                 if (!scoreElement) return;
 
-                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/Genre: (.*)/)?.[1];
+                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/(.*)/)?.[1];
                 if (genreText && genreText !== 'N/A') {
                     genreText.split(', ').forEach(genre => {
                         genre = genre.trim();
@@ -376,7 +400,8 @@ async function processMoviePosters() {
 
             // Create checkboxes for each genre
             genres.forEach(genre => {
-                if (!document.getElementById(`genre-${genre}`)) {
+                const existingGenreElement = document.getElementById(`genre-${genre}`);
+                if (!existingGenreElement) {
                     const div = document.createElement('div');
                     div.innerHTML = `
                         <label style="display: flex; align-items: center; justify-content: space-between; margin: 2px 0;">
@@ -404,7 +429,7 @@ async function processMoviePosters() {
                     });
                 } else {
                     // Update existing counter
-                    const countElement = document.querySelector(`#genre-${genre}`).closest('label').querySelector('.genre-count');
+                    const countElement = existingGenreElement.parentElement.querySelector('.genre-count');
                     if (countElement) {
                         countElement.textContent = genreCounts.get(genre) || 0;
                     }
@@ -475,7 +500,7 @@ async function processMoviePosters() {
 
                 const criticsScore = scoreElement.querySelector('.critics .score-value');
                 const audienceScore = scoreElement.querySelector('.audience .score-value');
-                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/Genre: (.*)/)?.[1];
+                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/(.*)/)?.[1];
                 const movieGenres = genreText ? genreText.split(', ').map(g => g.trim()) : [];
 
                 const criticsVal = criticsScore ? parseInt(criticsScore.textContent) : 0;
@@ -586,14 +611,14 @@ function initializeTooltips(container) {
     const tooltipElements = container.querySelectorAll('[data-tooltip]');
     
     tooltipElements.forEach(element => {
-        const tooltipText = element.getAttribute('data-tooltip');
+        const tooltipText = decodeURIComponent(element.getAttribute('data-tooltip'));
         const tooltipContainer = container.querySelector('.tooltip-container');
         if (!tooltipContainer) return;
         
         // Create tooltip element
         const tooltip = document.createElement('div');
         tooltip.className = 'tooltip';
-        tooltip.textContent = tooltipText;
+        tooltip.innerHTML = tooltipText;
         tooltipContainer.appendChild(tooltip);
         
         element.addEventListener('mouseenter', (e) => {
