@@ -243,6 +243,60 @@ function getScoreColor(score) {
 
 async function processMoviePosters() {
     console.log('Processing movie posters...');
+    
+    // Add filter controls if they don't exist
+    if (!document.getElementById('movie-filter-controls')) {
+        const filterControls = document.createElement('div');
+        filterControls.id = 'movie-filter-controls';
+        filterControls.innerHTML = `
+            <div style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000;">
+                <div style="margin-bottom: 5px;">
+                    <label for="criticsSlider">Critics Score Filter: <span id="criticsValue">0</span>%</label>
+                    <input type="range" id="criticsSlider" min="0" max="100" value="0" style="width: 200px; display: block;">
+                </div>
+                <div>
+                    <label for="audienceSlider">Audience Score Filter: <span id="audienceValue">0</span>%</label>
+                    <input type="range" id="audienceSlider" min="0" max="100" value="0" style="width: 200px; display: block;">
+                </div>
+            </div>
+        `;
+        document.body.appendChild(filterControls);
+
+        // Add event listeners for the sliders
+        const criticsSlider = document.getElementById('criticsSlider');
+        const audienceSlider = document.getElementById('audienceSlider');
+        const criticsValue = document.getElementById('criticsValue');
+        const audienceValue = document.getElementById('audienceValue');
+
+        function updateFilters() {
+            const criticsMin = parseInt(criticsSlider.value);
+            const audienceMin = parseInt(audienceSlider.value);
+            criticsValue.textContent = criticsMin;
+            audienceValue.textContent = audienceMin;
+
+            // Apply filters to all movie containers
+            document.querySelectorAll('.poster_container').forEach(container => {
+                const scoreElement = container.querySelector('.movie-score');
+                if (!scoreElement) return;
+
+                const criticsScore = scoreElement.querySelector('.critics .score-value');
+                const audienceScore = scoreElement.querySelector('.audience .score-value');
+
+                const criticsVal = criticsScore ? parseInt(criticsScore.textContent) : 0;
+                const audienceVal = audienceScore ? parseInt(audienceScore.textContent) : 0;
+
+                if (criticsVal >= criticsMin && audienceVal >= audienceMin) {
+                    container.style.display = '';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+        }
+
+        criticsSlider.addEventListener('input', updateFilters);
+        audienceSlider.addEventListener('input', updateFilters);
+    }
+
     const posterContainers = document.querySelectorAll('.poster_container');
     console.log('Found poster containers:', posterContainers.length);
     
