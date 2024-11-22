@@ -19,13 +19,27 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
             data = JSON.parse(cachedData);
         } else {
             console.log('🌐 Cache miss, fetching:', movieTitle);
-            const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}&key=${window.config.RT_API_KEY}`);
-            data = await response.json();
-            
-            // Store in localStorage if we got valid data
-            if (data.tomatometer) {
-                console.log('💾 Caching data for:', movieTitle);
-                localStorage.setItem(cacheKey, JSON.stringify(data));
+            try {
+                const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}&key=${window.config.RT_API_KEY}`);
+                if (!response.ok) {
+                    throw new Error('Movie not found');
+                }
+                data = await response.json();
+                
+                // Store in localStorage if we got valid data
+                if (data.tomatometer) {
+                    console.log('💾 Caching data for:', movieTitle);
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                }
+            } catch (error) {
+                console.log('🎭 Movie not found:', movieTitle);
+                scoreElement.innerHTML = `
+                    <div style="text-align: center; padding: 8px; color: #666;">
+                        <div>🎭</div>
+                        <div style="font-size: 0.9em;">No ratings found</div>
+                    </div>
+                `;
+                return;
             }
         }
 
@@ -189,13 +203,22 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
             // Initialize tooltips
             initializeTooltips(scoreElement);
         } else {
-            scoreElement.textContent = 'Score N/A';
-            scoreElement.style.backgroundColor = '#ccc';
+            console.log('🎭 No ratings for:', movieTitle);
+            scoreElement.innerHTML = `
+                <div style="text-align: center; padding: 8px; color: #666;">
+                    <div>🎭</div>
+                    <div style="font-size: 0.9em;">No ratings found</div>
+                </div>
+            `;
         }
     } catch (error) {
-        console.error('Error fetching score:', error);
-        scoreElement.textContent = 'Error';
-        scoreElement.style.backgroundColor = '#ff9999';
+        console.log('🎭 Error processing:', movieTitle, error);
+        scoreElement.innerHTML = `
+            <div style="text-align: center; padding: 8px; color: #666;">
+                <div>🎭</div>
+                <div style="font-size: 0.9em;">No ratings found</div>
+            </div>
+        `;
     }
 }
 
