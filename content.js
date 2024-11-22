@@ -250,11 +250,13 @@ async function processMoviePosters() {
         filterControls.id = 'movie-filter-controls';
         filterControls.innerHTML = `
             <div style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000;">
-                <div style="margin-bottom: 5px;">
+                <div style="margin-bottom: 10px;">
+                    <div id="criticsHistogram" class="histogram"></div>
                     <label for="criticsSlider">Critics Score Filter: <span id="criticsValue">0</span>%</label>
                     <input type="range" id="criticsSlider" min="0" max="100" value="0" style="width: 200px; display: block;">
                 </div>
                 <div>
+                    <div id="audienceHistogram" class="histogram"></div>
                     <label for="audienceSlider">Audience Score Filter: <span id="audienceValue">0</span>%</label>
                     <input type="range" id="audienceSlider" min="0" max="100" value="0" style="width: 200px; display: block;">
                 </div>
@@ -262,11 +264,71 @@ async function processMoviePosters() {
         `;
         document.body.appendChild(filterControls);
 
-        // Add event listeners for the sliders
+        // Add histogram styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .histogram {
+                display: flex;
+                align-items: flex-end;
+                height: 30px;
+                margin-bottom: 5px;
+                border-bottom: 1px solid #ccc;
+                padding: 0;
+            }
+            .histogram-bar {
+                flex: 1;
+                background-color: #007bff;
+                margin: 0 1px;
+                min-width: 3px;
+                transition: height 0.2s ease;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize histograms and sliders
         const criticsSlider = document.getElementById('criticsSlider');
         const audienceSlider = document.getElementById('audienceSlider');
         const criticsValue = document.getElementById('criticsValue');
         const audienceValue = document.getElementById('audienceValue');
+
+        function updateHistograms() {
+            const criticsScores = [];
+            const audienceScores = [];
+            
+            // Collect all scores
+            document.querySelectorAll('.poster_container').forEach(container => {
+                const scoreElement = container.querySelector('.movie-score');
+                if (!scoreElement) return;
+
+                const criticsScore = scoreElement.querySelector('.critics .score-value');
+                const audienceScore = scoreElement.querySelector('.audience .score-value');
+
+                if (criticsScore) criticsScores.push(parseInt(criticsScore.textContent));
+                if (audienceScore) audienceScores.push(parseInt(audienceScore.textContent));
+            });
+
+            // Create histogram data (10 bins)
+            function createHistogramData(scores) {
+                const bins = Array(10).fill(0);
+                scores.forEach(score => {
+                    const binIndex = Math.min(Math.floor(score / 10), 9);
+                    bins[binIndex]++;
+                });
+                const maxCount = Math.max(...bins);
+                return bins.map(count => count / maxCount); // Normalize to 0-1
+            }
+
+            // Update histogram visualizations
+            function updateHistogramView(histogramId, normalizedData) {
+                const histogram = document.getElementById(histogramId);
+                histogram.innerHTML = normalizedData.map(height => 
+                    `<div class="histogram-bar" style="height: ${height * 100}%"></div>`
+                ).join('');
+            }
+
+            updateHistogramView('criticsHistogram', createHistogramData(criticsScores));
+            updateHistogramView('audienceHistogram', createHistogramData(audienceScores));
+        }
 
         function updateFilters() {
             const criticsMin = parseInt(criticsSlider.value);
@@ -274,7 +336,6 @@ async function processMoviePosters() {
             criticsValue.textContent = criticsMin;
             audienceValue.textContent = audienceMin;
 
-            // Apply filters to all movie containers
             document.querySelectorAll('.poster_container').forEach(container => {
                 const scoreElement = container.querySelector('.movie-score');
                 if (!scoreElement) return;
@@ -295,6 +356,9 @@ async function processMoviePosters() {
 
         criticsSlider.addEventListener('input', updateFilters);
         audienceSlider.addEventListener('input', updateFilters);
+
+        // Initial histogram update
+        setTimeout(updateHistograms, 1000); // Wait for scores to load
     }
 
     const posterContainers = document.querySelectorAll('.poster_container');
