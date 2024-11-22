@@ -66,7 +66,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                 </div>
                 <div class="movie-details rt-link" data-url="${rtUrl}">
                     <div>Released: ${data.details['Release Date (Theaters)'] || 'N/A'}</div>
-                    <div>Box Office: ${data.details['Box Office (Gross USA)'] || 'N/A'}</div>
+                    <div>Genre: ${data.details.Genre?.join(', ') || 'N/A'}</div>
                 </div>
                 <div class="tooltip-container"></div>
             `;
@@ -255,14 +255,76 @@ async function processMoviePosters() {
                     <label for="criticsSlider">Critics Score Filter: <span id="criticsValue">0</span>%</label>
                     <input type="range" id="criticsSlider" min="0" max="100" value="0" style="width: 200px; display: block;">
                 </div>
-                <div>
+                <div style="margin-bottom: 10px;">
                     <div id="audienceHistogram" class="histogram"></div>
                     <label for="audienceSlider">Audience Score Filter: <span id="audienceValue">0</span>%</label>
                     <input type="range" id="audienceSlider" min="0" max="100" value="0" style="width: 200px; display: block;">
                 </div>
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <button id="toggleGenres" style="
+                            background: none;
+                            border: none;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            font-weight: bold;
+                            padding: 0;
+                        ">
+                            <span style="margin-right: 5px;">▼</span> Genre Filters
+                        </button>
+                        <button id="resetGenres" style="
+                            background: #f0f0f0;
+                            border: 1px solid #ccc;
+                            border-radius: 3px;
+                            padding: 2px 8px;
+                            cursor: pointer;
+                            font-size: 0.8em;
+                        ">Reset All</button>
+                    </div>
+                    <div id="genreFilters" style="
+                        margin-top: 5px;
+                        max-height: 200px;
+                        overflow-y: auto;
+                        transition: max-height 0.3s ease-in-out;
+                    "></div>
+                </div>
             </div>
         `;
         document.body.appendChild(filterControls);
+
+        // Add toggle and reset functionality
+        const toggleButton = document.getElementById('toggleGenres');
+        const resetButton = document.getElementById('resetGenres');
+        const genreFilters = document.getElementById('genreFilters');
+        let isGenresExpanded = true;
+
+        toggleButton.addEventListener('click', () => {
+            isGenresExpanded = !isGenresExpanded;
+            genreFilters.style.maxHeight = isGenresExpanded ? '200px' : '0';
+            toggleButton.querySelector('span').textContent = isGenresExpanded ? '▼' : '▶';
+        });
+
+        // Update the reset button functionality
+        function updateResetButtonState() {
+            const checkboxes = document.querySelectorAll('#genreFilters input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            resetButton.textContent = allChecked ? 'Clear All' : 'Reset All';
+        }
+
+        resetButton.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('#genreFilters input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            // Toggle all checkboxes
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !allChecked;
+            });
+            
+            // Update button text
+            updateResetButtonState();
+            updateFilters();
+        });
 
         // Add histogram styles
         const style = document.createElement('style');
@@ -290,6 +352,68 @@ async function processMoviePosters() {
         const audienceSlider = document.getElementById('audienceSlider');
         const criticsValue = document.getElementById('criticsValue');
         const audienceValue = document.getElementById('audienceValue');
+
+        // Add code to collect and create genre filters
+        const genres = new Set();
+
+        function updateGenreFilters() {
+            // First collect all genres and their counts
+            const genreCounts = new Map();
+            
+            document.querySelectorAll('.poster_container').forEach(container => {
+                const scoreElement = container.querySelector('.movie-score');
+                if (!scoreElement) return;
+
+                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/Genre: (.*)/)?.[1];
+                if (genreText && genreText !== 'N/A') {
+                    genreText.split(', ').forEach(genre => {
+                        genre = genre.trim();
+                        genres.add(genre);
+                        genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+                    });
+                }
+            });
+
+            // Create checkboxes for each genre
+            genres.forEach(genre => {
+                if (!document.getElementById(`genre-${genre}`)) {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label style="display: flex; align-items: center; justify-content: space-between; margin: 2px 0;">
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="genre-${genre}" value="${genre}" checked>
+                                <span style="margin-left: 5px;">${genre}</span>
+                            </div>
+                            <span class="genre-count" style="
+                                font-size: 0.8em;
+                                color: #666;
+                                background: #f0f0f0;
+                                padding: 1px 6px;
+                                border-radius: 10px;
+                                margin-left: 8px;
+                            ">${genreCounts.get(genre) || 0}</span>
+                        </label>
+                    `;
+                    genreFilters.appendChild(div);
+                    
+                    // Add event listener to the checkbox
+                    const checkbox = div.querySelector('input');
+                    checkbox.addEventListener('change', () => {
+                        updateFilters();
+                        updateResetButtonState();
+                    });
+                } else {
+                    // Update existing counter
+                    const countElement = document.querySelector(`#genre-${genre}`).closest('label').querySelector('.genre-count');
+                    if (countElement) {
+                        countElement.textContent = genreCounts.get(genre) || 0;
+                    }
+                }
+            });
+            
+            // Update button state after adding new genres
+            updateResetButtonState();
+        }
 
         function updateHistograms() {
             const criticsScores = [];
@@ -333,6 +457,8 @@ async function processMoviePosters() {
         function updateFilters() {
             const criticsMin = parseInt(criticsSlider.value);
             const audienceMin = parseInt(audienceSlider.value);
+            const selectedGenres = Array.from(document.querySelectorAll('#genreFilters input:checked')).map(cb => cb.value);
+            
             criticsValue.textContent = criticsMin;
             audienceValue.textContent = audienceMin;
 
@@ -340,13 +466,23 @@ async function processMoviePosters() {
                 const scoreElement = container.querySelector('.movie-score');
                 if (!scoreElement) return;
 
+                // Check if this is a "No ratings found" element
+                const noRatingsFound = scoreElement.textContent.includes('No ratings found');
+                if (noRatingsFound) {
+                    container.style.display = ''; // Always show movies with no ratings
+                    return;
+                }
+
                 const criticsScore = scoreElement.querySelector('.critics .score-value');
                 const audienceScore = scoreElement.querySelector('.audience .score-value');
+                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/Genre: (.*)/)?.[1];
+                const movieGenres = genreText ? genreText.split(', ').map(g => g.trim()) : [];
 
                 const criticsVal = criticsScore ? parseInt(criticsScore.textContent) : 0;
                 const audienceVal = audienceScore ? parseInt(audienceScore.textContent) : 0;
+                const hasSelectedGenre = movieGenres.some(genre => selectedGenres.includes(genre));
 
-                if (criticsVal >= criticsMin && audienceVal >= audienceMin) {
+                if (criticsVal >= criticsMin && audienceVal >= audienceMin && hasSelectedGenre) {
                     container.style.display = '';
                 } else {
                     container.style.display = 'none';
@@ -359,6 +495,9 @@ async function processMoviePosters() {
 
         // Initial histogram update
         setTimeout(updateHistograms, 1000); // Wait for scores to load
+
+        // Update genre filters periodically as new movies load
+        setInterval(updateGenreFilters, 1000);
     }
 
     const posterContainers = document.querySelectorAll('.poster_container');
