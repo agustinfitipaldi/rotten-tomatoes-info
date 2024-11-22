@@ -1,12 +1,34 @@
 console.log('Content script loaded!');
 
 async function getRottenTomatoesScore(movieTitle, scoreElement) {
-    console.log('Searching for:', movieTitle);
+    console.log('🎬 Processing:', movieTitle);
     
     try {
-        const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}&key=${window.config.RT_API_KEY}`);
-        const data = await response.json();
-        
+        // Extract year from title if present and create cache key
+        const match = movieTitle.match(/(.*?)\s*\((\d{4})\)$/);
+        const cleanTitle = match ? match[1].trim() : movieTitle;
+        const year = match ? match[2] : '';
+        const cacheKey = `rt_${cleanTitle}_${year}`.toLowerCase();
+
+        // Check localStorage first
+        const cachedData = localStorage.getItem(cacheKey);
+        let data;
+
+        if (cachedData) {
+            console.log('📦 Cache hit:', movieTitle);
+            data = JSON.parse(cachedData);
+        } else {
+            console.log('🌐 Cache miss, fetching:', movieTitle);
+            const response = await fetch(`https://rt-scraper.vercel.app/api/search?movie=${encodeURIComponent(movieTitle)}&key=${window.config.RT_API_KEY}`);
+            data = await response.json();
+            
+            // Store in localStorage if we got valid data
+            if (data.tomatometer) {
+                console.log('💾 Caching data for:', movieTitle);
+                localStorage.setItem(cacheKey, JSON.stringify(data));
+            }
+        }
+
         if (data.tomatometer) {
             // Add the RT URL to the data
             const rtUrl = data.url;
@@ -242,6 +264,7 @@ async function processMoviePosters() {
     // Process all fetches concurrently
     try {
         await Promise.all(fetchPromises);
+        logCacheStatus();
     } catch (error) {
         console.error('Error processing multiple scores:', error);
     }
@@ -323,4 +346,12 @@ function positionTooltip(target, tooltip) {
     
     // Add the appropriate position class
     tooltip.classList.add(positionClass);
+}
+
+// Add this new function to help monitor cache usage
+function logCacheStatus() {
+    const cacheKeys = Object.keys(localStorage).filter(key => key.startsWith('rt_'));
+    console.log('📊 Cache Status:');
+    console.log(`Total cached movies: ${cacheKeys.length}`);
+    console.log('Cached titles:', cacheKeys.map(key => key.replace('rt_', '')));
 }
