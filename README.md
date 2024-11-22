@@ -9,15 +9,10 @@ how to fork your own.
 
 ## Features
 
-- Automatically detects movie titles on the page
-- Displays both critic and audience scores from Rotten Tomatoes
-- Shows additional movie information including:
-  - Release date
-  - Box office performance
-  - Number of reviews (on hover)
-  - Synopsis (on hover)
-- Color-coded score indicators (red to green) for quick visual reference
-- Real-time updates when new movie posters load on the page
+- **Displays** title, critic score, audience score, and genres under each poster
+- Shows Director, Producer, Writer, Cast, Runtime, Release Date, and Synopsis on a tooltip
+- Allows **filtering** by critic score, audience score, and genres
+- Clicking on any part of the inserted information will open the Rotten Tomatoes page for that movie
 
 ## Installation
 
