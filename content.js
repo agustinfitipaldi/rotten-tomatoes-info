@@ -48,7 +48,7 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
             const rtUrl = data.url;
             
             // Create formatted tooltip content and escape it for the data attribute
-            const tooltipContent = encodeURIComponent(`<div class="tooltip-section"><span class="tooltip-label">Director:</span> ${data.details.Director || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Producer:</span> ${Array.isArray(data.details.Producer) ? data.details.Producer.join(', ') : data.details.Producer || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Screenwriter:</span> ${Array.isArray(data.details.Screenwriter) ? data.details.Screenwriter.join(', ') : data.details.Screenwriter || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Cast:</span> ${Array.isArray(data.cast) ? data.cast.join(', ') : data.cast || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Runtime:</span> ${data.details.Runtime || 'N/A'}</div><div class="tooltip-section synopsis"><span class="tooltip-label">Synopsis:</span> ${data.synopsis || 'No synopsis available.'}</div>`);
+            const tooltipContent = encodeURIComponent(`<div class="tooltip-section"><span class="tooltip-label">Director:</span> ${data.details.Director || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Producer:</span> ${Array.isArray(data.details.Producer) ? data.details.Producer.join(', ') : data.details.Producer || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Screenwriter:</span> ${Array.isArray(data.details.Screenwriter) ? data.details.Screenwriter.join(', ') : data.details.Screenwriter || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Cast:</span> ${Array.isArray(data.cast) ? data.cast.join(', ') : data.cast || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Runtime:</span> ${data.details.Runtime || 'N/A'}</div><div class="tooltip-section"><span class="tooltip-label">Release Date:</span> ${data.details['Release Date (Theaters)'] || 'N/A'}</div><div class="tooltip-section synopsis"><span class="tooltip-label">Synopsis:</span> ${data.synopsis || 'No synopsis available.'}</div>`);
             
             // Update the HTML to make elements clickable
             scoreElement.innerHTML = `
@@ -68,7 +68,6 @@ async function getRottenTomatoesScore(movieTitle, scoreElement) {
                     </div>
                 </div>
                 <div class="movie-details rt-link" data-url="${rtUrl}">
-                    <div>Released: ${data.details['Release Date (Theaters)'] || 'N/A'}</div>
                     <div>${data.details.Genre?.join(', ') || 'N/A'}</div>
                 </div>
                 <div class="tooltip-container"></div>
@@ -347,6 +346,8 @@ async function processMoviePosters() {
             
             // Update button text
             updateResetButtonState();
+            
+            // Explicitly trigger the filter update
             updateFilters();
         });
 
@@ -381,64 +382,98 @@ async function processMoviePosters() {
         const genres = new Set();
 
         function updateGenreFilters() {
+            console.log('Updating genre filters...'); // Debug log
+            
             // First collect all genres and their counts
             const genreCounts = new Map();
             
-            document.querySelectorAll('.poster_container').forEach(container => {
+            // Debug log the number of containers being processed
+            const containers = document.querySelectorAll('.poster_container');
+            console.log('Found poster containers:', containers.length);
+            
+            containers.forEach(container => {
                 const scoreElement = container.querySelector('.movie-score');
                 if (!scoreElement) return;
 
-                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/(.*)/)?.[1];
+                const genreDiv = scoreElement.querySelector('.movie-details');
+                console.log('Genre div content:', genreDiv?.textContent); // Debug log
+                
+                const genreText = genreDiv?.textContent;
                 if (genreText && genreText !== 'N/A') {
                     genreText.split(', ').forEach(genre => {
                         genre = genre.trim();
-                        genres.add(genre);
-                        genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+                        if (genre) {  // Only add non-empty genres
+                            genres.add(genre);
+                            genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+                        }
                     });
                 }
             });
 
-            // Create checkboxes for each genre
-            genres.forEach(genre => {
-                const existingGenreElement = document.getElementById(`genre-${genre}`);
-                if (!existingGenreElement) {
-                    const div = document.createElement('div');
-                    div.innerHTML = `
-                        <label style="display: flex; align-items: center; justify-content: space-between; margin: 2px 0;">
-                            <div style="display: flex; align-items: center;">
-                                <input type="checkbox" id="genre-${genre}" value="${genre}" checked>
-                                <span style="margin-left: 5px;">${genre}</span>
-                            </div>
-                            <span class="genre-count" style="
-                                font-size: 0.8em;
-                                color: #666;
-                                background: #f0f0f0;
-                                padding: 1px 6px;
-                                border-radius: 10px;
-                                margin-left: 8px;
-                            ">${genreCounts.get(genre) || 0}</span>
-                        </label>
-                    `;
-                    genreFilters.appendChild(div);
-                    
-                    // Add event listener to the checkbox
-                    const checkbox = div.querySelector('input');
-                    checkbox.addEventListener('change', () => {
-                        updateFilters();
-                        updateResetButtonState();
-                    });
-                } else {
-                    // Update existing counter
-                    const countElement = existingGenreElement.parentElement.querySelector('.genre-count');
-                    if (countElement) {
-                        countElement.textContent = genreCounts.get(genre) || 0;
-                    }
-                }
+            console.log('Collected genres:', Array.from(genres)); // Debug log
+            console.log('Genre counts:', Object.fromEntries(genreCounts)); // Debug log
+
+            // Only proceed if we have genres
+            if (genres.size === 0) {
+                console.log('No genres found, skipping filter update');
+                return;
+            }
+
+            const genreFilters = document.getElementById('genreFilters');
+            if (!genreFilters) {
+                console.log('Genre filters container not found');
+                return;
+            }
+
+            // Store current checkbox states
+            const previousStates = new Map();
+            genreFilters.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                previousStates.set(checkbox.value, checkbox.checked);
+            });
+
+            // Clear and rebuild genre filters
+            genreFilters.innerHTML = '';
+
+            Array.from(genres).sort().forEach(genre => {
+                if (!genre) return;
+                
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label style="display: flex; align-items: center; justify-content: space-between; margin: 2px 0;">
+                        <div style="display: flex; align-items: center;">
+                            <input type="checkbox" id="genre-${genre}" value="${genre}" 
+                                ${previousStates.has(genre) ? (previousStates.get(genre) ? 'checked' : '') : 'checked'}>
+                            <span style="margin-left: 5px;">${genre}</span>
+                        </div>
+                        <span class="genre-count">${genreCounts.get(genre) || 0}</span>
+                    </label>
+                `;
+                genreFilters.appendChild(div);
+                
+                const checkbox = div.querySelector('input');
+                checkbox.addEventListener('change', () => {
+                    updateFilters();
+                    updateResetButtonState();
+                });
             });
             
-            // Update button state after adding new genres
             updateResetButtonState();
         }
+
+        // Modify the interval to be more aggressive initially and then back off
+        let checkCount = 0;
+        const maxChecks = 10;
+        const checkInterval = setInterval(() => {
+            console.log('Checking for genres...', checkCount); // Debug log
+            
+            if (genres.size > 0 || checkCount >= maxChecks) {
+                clearInterval(checkInterval);
+                if (genres.size > 0) {
+                    updateGenreFilters();
+                }
+            }
+            checkCount++;
+        }, 1000);
 
         function updateHistograms() {
             const criticsScores = [];
@@ -484,6 +519,8 @@ async function processMoviePosters() {
             const audienceMin = parseInt(audienceSlider.value);
             const selectedGenres = Array.from(document.querySelectorAll('#genreFilters input:checked')).map(cb => cb.value);
             
+            console.log('Filter update - Selected genres:', selectedGenres); // Debug log
+            
             criticsValue.textContent = criticsMin;
             audienceValue.textContent = audienceMin;
 
@@ -491,27 +528,24 @@ async function processMoviePosters() {
                 const scoreElement = container.querySelector('.movie-score');
                 if (!scoreElement) return;
 
-                // Check if this is a "No ratings found" element
                 const noRatingsFound = scoreElement.textContent.includes('No ratings found');
                 if (noRatingsFound) {
-                    container.style.display = ''; // Always show movies with no ratings
+                    container.style.display = '';
                     return;
                 }
 
-                const criticsScore = scoreElement.querySelector('.critics .score-value');
-                const audienceScore = scoreElement.querySelector('.audience .score-value');
-                const genreText = scoreElement.querySelector('.movie-details')?.textContent.match(/(.*)/)?.[1];
-                const movieGenres = genreText ? genreText.split(', ').map(g => g.trim()) : [];
+                const criticsScore = parseInt(scoreElement.querySelector('.critics .score-value')?.textContent || '0');
+                const audienceScore = parseInt(scoreElement.querySelector('.audience .score-value')?.textContent || '0');
+                const genreText = scoreElement.querySelector('.movie-details')?.textContent;
+                const movieGenres = genreText && genreText !== 'N/A' ? genreText.split(', ').map(g => g.trim()) : [];
 
-                const criticsVal = criticsScore ? parseInt(criticsScore.textContent) : 0;
-                const audienceVal = audienceScore ? parseInt(audienceScore.textContent) : 0;
-                const hasSelectedGenre = movieGenres.some(genre => selectedGenres.includes(genre));
+                // Show element if it passes ALL filters
+                const passesCriticsFilter = criticsScore >= criticsMin;
+                const passesAudienceFilter = audienceScore >= audienceMin;
+                // If no genres are selected (all unchecked), hide all movies
+                const passesGenreFilter = selectedGenres.length > 0 && movieGenres.some(genre => selectedGenres.includes(genre));
 
-                if (criticsVal >= criticsMin && audienceVal >= audienceMin && hasSelectedGenre) {
-                    container.style.display = '';
-                } else {
-                    container.style.display = 'none';
-                }
+                container.style.display = (passesCriticsFilter && passesAudienceFilter && passesGenreFilter) ? '' : 'none';
             });
         }
 
@@ -521,8 +555,16 @@ async function processMoviePosters() {
         // Initial histogram update
         setTimeout(updateHistograms, 1000); // Wait for scores to load
 
-        // Update genre filters periodically as new movies load
-        setInterval(updateGenreFilters, 1000);
+        // Replace the setInterval with a more intelligent update mechanism
+        let lastGenreCount = 0;
+        setInterval(() => {
+            const currentGenreCount = genres.size;
+            // Only update if we have new genres
+            if (currentGenreCount > lastGenreCount) {
+                lastGenreCount = currentGenreCount;
+                updateGenreFilters();
+            }
+        }, 1000);
     }
 
     const posterContainers = document.querySelectorAll('.poster_container');
@@ -570,6 +612,7 @@ async function processMoviePosters() {
     try {
         await Promise.all(fetchPromises);
         logCacheStatus();
+        updateGenreFilters();
     } catch (error) {
         console.error('Error processing multiple scores:', error);
     }
